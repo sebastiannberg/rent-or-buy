@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 
 class Buy:
     """
@@ -12,7 +12,7 @@ class Buy:
                  formuesverdi: float, felleskostnader: float, egenkapital: float, eff_rente_boliglån: float, 
                  nedbetalingstid: int, verdistigning: float, inflasjonsrente: float, roi: float, by: str, 
                  strøm: float, parkering: float, internett_og_tv: float, flyttekostnader: float, 
-                 møbler: float, vedlikeholdskostnader: float, eksisterende_formue: float = 0) -> None:
+                 møbler: float, vedlikeholdskostnader: float, eksisterende_formue: float) -> None:
         """
         Initialiserer et Buy-objekt med nødvendige verdier.
 
@@ -118,3 +118,17 @@ class Buy:
         # Total årlig formuesskatt
         årlig_formuesskatt = kommunal_formuesskatt + statlig_formuesskatt
         return årlig_formuesskatt
+
+    def beregn_prisantydning_over_tid(self) -> List[float]:
+        """
+        Beregner prisantydningen for hvert år i eierskapsperioden, med årlig verdistigning.
+
+        Returns:
+            List[float]: Liste over prisantydning for hvert år i eierskapsperioden.
+        """
+        årlig_prisantydning = [self.prisantydning]
+        for år in range(1, self.antall_år):
+            ny_verdi = årlig_prisantydning[-1] * (1 + self.verdistingning / 100)
+            årlig_prisantydning.append(ny_verdi)
+        return årlig_prisantydning
+    
