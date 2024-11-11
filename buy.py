@@ -1,6 +1,43 @@
+from typing import Dict
+
 class Buy:
-    
-    def __init__(self, antall_år, prisantydning, fellesgjeld, omkostninger, formuesverdi, felleskostnader, egenkapital, eff_rente_boliglån, nedbetalingstid, verdistigning, inflasjonsrente, roi, by, strøm, parkering, internett_og_tv, flyttekostnader, møbler, vedlikeholdskostnader):
+    """
+    Representerer en boligkjøp-beregning med eiendomsskatt og formuesskatt.
+
+    Denne klassen lar deg beregne årlige kostnader som eiendomsskatt og formuesskatt basert på 
+    boligens pris, gjeld og annen eksisterende formue.
+    """
+
+    def __init__(self, antall_år: int, prisantydning: float, fellesgjeld: float, omkostninger: float, 
+                 formuesverdi: float, felleskostnader: float, egenkapital: float, eff_rente_boliglån: float, 
+                 nedbetalingstid: int, verdistigning: float, inflasjonsrente: float, roi: float, by: str, 
+                 strøm: float, parkering: float, internett_og_tv: float, flyttekostnader: float, 
+                 møbler: float, vedlikeholdskostnader: float, eksisterende_formue: float = 0) -> None:
+        """
+        Initialiserer et Buy-objekt med nødvendige verdier.
+
+        Args:
+            antall_år (int): Antall år for beregningen.
+            prisantydning (float): Boligens prisantydning.
+            fellesgjeld (float): Boligens fellesgjeld.
+            omkostninger (float): Omkostninger ved kjøp.
+            formuesverdi (float): Formuesverdi av boligen.
+            felleskostnader (float): Månedlige felleskostnader.
+            egenkapital (float): Egenkapital som investeres.
+            eff_rente_boliglån (float): Effektiv rente på boliglånet.
+            nedbetalingstid (int): Lånets nedbetalingstid i år.
+            verdistigning (float): Forventet årlig verdistigning i prosent.
+            inflasjonsrente (float): Forventet årlig inflasjon i prosent.
+            roi (float): Forventet årlig avkastning på investeringer.
+            by (str): Byen hvor boligen er, påvirker eiendomsskatten.
+            strøm (float): Årlige strømutgifter.
+            parkering (float): Årlige parkeringsutgifter.
+            internett_og_tv (float): Årlige utgifter til internett og TV.
+            flyttekostnader (float): Kostnader ved flytting.
+            møbler (float): Kostnader for møbler.
+            vedlikeholdskostnader (float): Årlige vedlikeholdskostnader.
+            eksisterende_formue (float, optional): Annen eksisterende formue. Default er 0.
+        """
         self.antall_år = antall_år
         self.prisantydning = prisantydning
         self.fellesgjeld = fellesgjeld
@@ -13,51 +50,71 @@ class Buy:
         self.verdistingning = verdistigning
         self.inflasjonsrente = inflasjonsrente
         self.roi = roi
-        self.by = by
+        self.by = by.lower()  # Gjør by lowercase for å samsvare med oppslagsstrukturen
         self.strøm = strøm
         self.parkering = parkering
         self.internett_og_tv = internett_og_tv
         self.flyttekostnader = flyttekostnader
         self.møbler = møbler
         self.vedlikeholdskostnader = vedlikeholdskostnader
-        self.eiendomsskatt_sats = {"oslo": 0.0028, "trondheim": 0.00265}
-        self.eiendomsskatt_bunnfradrag = {"oslo": 4700000, "trondheim": 550000}
+        self.eiendomsskatt_sats: Dict[str, float] = {"oslo": 0.0028, "trondheim": 0.00265}
+        self.eiendomsskatt_bunnfradrag: Dict[str, float] = {"oslo": 4700000, "trondheim": 550000}
+        self.eksisterende_formue = eksisterende_formue
+        self.formuesskatt_kommunal_sats = 0.007
+        self.formuesskatt_statlig_sats_lav = 0.003
+        self.formuesskatt_statlig_sats_høy = 0.004
         self.formuesskatt_bunnfradrag = 1700000
 
-    def kalkuler_årlig_eiendomsskatt(self):
-        # 1. Beregn grunnlaget for eiendomsskatten (70 % av prisantydning)
+    def kalkuler_årlig_eiendomsskatt(self) -> float:
+        """
+        Beregner årlig eiendomsskatt for boligen basert på prisantydning, bunnfradrag, og kommunens eiendomsskattesats.
+
+        Returns:
+            float: Årlig eiendomsskatt i NOK.
+        """
+        # Beregn eiendomsskattegrunnlag som 70 % av prisantydning
         eiendomsskattegrunnlag = self.prisantydning * 0.7
-
-        # 2. Trekk fra bunnfradrag for valgt by
-        bunnfradrag = self.eiendomsskatt_bunnfradrag[self.by.lower()]
+        
+        # Finn bunnfradraget for valgt by
+        bunnfradrag = self.eiendomsskatt_bunnfradrag.get(self.by, 0)
+        
+        # Skattepliktig grunnlag etter bunnfradrag
         skattepliktig_grunnlag = max(eiendomsskattegrunnlag - bunnfradrag, 0)
-
-        # 3. Beregn eiendomsskatt ved å multiplisere med satsen for valgt by
-        sats = self.eiendomsskatt_sats[self.by.lower()]
+        
+        # Få eiendomsskattesatsen for valgt by
+        sats = self.eiendomsskatt_sats.get(self.by, 0)
+        
+        # Beregn årlig eiendomsskatt
         årlig_eiendomsskatt = skattepliktig_grunnlag * sats
-
         return årlig_eiendomsskatt
 
-    def kalkuler_årlig_formuesskatt(self, eksisterende_formue=0):
-        # Beregn nettoformue inkludert eventuell annen eksisterende formue
+    def kalkuler_årlig_formuesskatt(self) -> float:
+        """
+        Beregner årlig formuesskatt basert på boligens netto formuesverdi, annen eksisterende formue,
+        bunnfradrag, og kommunale og statlige formuesskattesatser.
+
+        Returns:
+            float: Årlig formuesskatt i NOK.
+        """
+        # Beregn netto boligformue (formuesverdi minus fellesgjeld)
         boligformue = max(self.formuesverdi - self.fellesgjeld, 0)
-        total_nettoformue = boligformue + eksisterende_formue
-
-        # Trekk fra bunnfradrag
+        
+        # Total nettoformue inkludert annen formue
+        total_nettoformue = boligformue + self.eksisterende_formue
+        
+        # Beregn skattepliktig formue etter bunnfradrag
         skattepliktig_formue = max(total_nettoformue - self.formuesskatt_bunnfradrag, 0)
-
-        # Kommunal formuesskatt
-        kommunal_sats = 0.007
-        kommunal_formuesskatt = skattepliktig_formue * kommunal_sats
-
-        # Statlig formuesskatt
+        
+        # Beregn kommunal formuesskatt
+        kommunal_formuesskatt = skattepliktig_formue * self.formuesskatt_kommunal_sats
+        
+        # Beregn statlig formuesskatt med høy og lav sats
         statlig_formuesskatt = 0
         if skattepliktig_formue > 20000000:
-            statlig_formuesskatt += (skattepliktig_formue - 20000000) * 0.004
+            statlig_formuesskatt += (skattepliktig_formue - 20000000) * self.formuesskatt_statlig_sats_høy
             skattepliktig_formue = 20000000
-        statlig_formuesskatt += skattepliktig_formue * 0.003
-
-        # Total formuesskatt
+        statlig_formuesskatt += skattepliktig_formue * self.formuesskatt_statlig_sats_lav
+        
+        # Total årlig formuesskatt
         årlig_formuesskatt = kommunal_formuesskatt + statlig_formuesskatt
-
         return årlig_formuesskatt
