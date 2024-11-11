@@ -50,7 +50,7 @@ class Buy:
         self.verdistingning = verdistigning
         self.inflasjonsrente = inflasjonsrente
         self.roi = roi
-        self.by = by.lower()  # Gjør by lowercase for å samsvare med oppslagsstrukturen
+        self.by = by.lower()
         self.strøm = strøm
         self.parkering = parkering
         self.internett_og_tv = internett_og_tv
@@ -64,8 +64,21 @@ class Buy:
         self.formuesskatt_statlig_sats_lav = 0.003
         self.formuesskatt_statlig_sats_høy = 0.004
         self.formuesskatt_bunnfradrag = 1700000
+    
+    def prisantydning_over_tid(self) -> List[float]:
+        """
+        Beregner prisantydningen for hvert år i eierskapsperioden, med årlig verdistigning.
 
-    def kalkuler_årlig_eiendomsskatt(self) -> float:
+        Returns:
+            List[float]: Liste over prisantydning for hvert år i eierskapsperioden.
+        """
+        årlig_prisantydning = [self.prisantydning]
+        for år in range(1, self.antall_år):
+            ny_verdi = årlig_prisantydning[-1] * (1 + self.verdistingning / 100)
+            årlig_prisantydning.append(ny_verdi)
+        return årlig_prisantydning
+
+    def årlig_eiendomsskatt(self) -> float:
         """
         Beregner årlig eiendomsskatt for boligen basert på prisantydning, bunnfradrag, og kommunens eiendomsskattesats.
 
@@ -88,7 +101,7 @@ class Buy:
         årlig_eiendomsskatt = skattepliktig_grunnlag * sats
         return årlig_eiendomsskatt
 
-    def kalkuler_årlig_formuesskatt(self) -> float:
+    def årlig_formuesskatt(self) -> float:
         """
         Beregner årlig formuesskatt basert på boligens netto formuesverdi, annen eksisterende formue,
         bunnfradrag, og kommunale og statlige formuesskattesatser.
@@ -119,16 +132,61 @@ class Buy:
         årlig_formuesskatt = kommunal_formuesskatt + statlig_formuesskatt
         return årlig_formuesskatt
 
-    def beregn_prisantydning_over_tid(self) -> List[float]:
+    def årlig_lånekostnad(self) -> float:
         """
-        Beregner prisantydningen for hvert år i eierskapsperioden, med årlig verdistigning.
+        Beregner den årlige kostnaden av lånet, inkludert både rente og avdrag.
+
+        Returnerer:
+            float: Årlig lånekostnad i NOK.
+        """
+        # Beregn årlig betaling basert på annuitetslån
+        if self.nedbetalingstid > 0:
+            # Antall årlige betalinger
+            antall_betalinger = self.nedbetalingstid * 12
+            # Månedlig rente
+            månedlig_rente = (1 + self.eff_rente_boliglån) ** (1/12) - 1
+            # Lånebeløp (prisantydning - egenkapital)
+            lånebeløp = max(self.prisantydning - self.egenkapital, 0)
+
+            # Annuitetsformel for månedlig betaling
+            månedlig_betaling = lånebeløp * (månedlig_rente * (1 + månedlig_rente) ** antall_betalinger) / \
+                                ((1 + månedlig_rente) ** antall_betalinger - 1)
+            
+            # Årlig lånekostnad (månedlig betaling * 12)
+            årlig_lånekostnad = månedlig_betaling * 12
+            return årlig_lånekostnad
+        return 0.0
+
+    def årlig_driftkostnad(self) -> float:
+        """
+        Beregner de totale årlige driftskostnadene for boligen, inkludert felleskostnader,
+        strøm, parkering, internett og TV, vedlikeholdskostnader, og eventuelle andre utgifter.
 
         Returns:
-            List[float]: Liste over prisantydning for hvert år i eierskapsperioden.
+            float: Totale årlige driftskostnader i NOK.
         """
-        årlig_prisantydning = [self.prisantydning]
-        for år in range(1, self.antall_år):
-            ny_verdi = årlig_prisantydning[-1] * (1 + self.verdistingning / 100)
-            årlig_prisantydning.append(ny_verdi)
-        return årlig_prisantydning
-    
+        # Beregn totale felleskostnader per år
+        årlige_felleskostnader = self.felleskostnader * 12
+        
+        # Summerer alle årlige driftskostnader
+        årlig_driftkostnad = (
+            årlige_felleskostnader +    # Årlige felleskostnader
+            self.strøm +                # Årlige strømutgifter
+            self.parkering +            # Årlige parkeringsutgifter
+            self.internett_og_tv +      # Årlige utgifter til internett og TV
+            self.vedlikeholdskostnader  # Årlige vedlikeholdskostnader
+        )
+        
+        return årlig_driftkostnad
+
+    def samlet_årlig_kostnad(self):
+        pass
+
+    def total_kostnad_over_tid(self):
+        pass
+
+    def investering_av_egenkapital(self):
+        pass
+
+    def nettogevinst_ved_salg(self):
+        pass

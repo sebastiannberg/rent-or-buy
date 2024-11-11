@@ -31,5 +31,3 @@ BUY_CONFIG = {
 }
 
 buy = Buy(**BUY_CONFIG)
-print(buy.kalkuler_årlig_eiendomsskatt())
-print(buy.kalkuler_årlig_formuesskatt())
